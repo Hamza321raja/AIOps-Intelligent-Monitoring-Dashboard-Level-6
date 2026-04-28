@@ -1,0 +1,8 @@
+- name: Scale Worker Containers
+  hosts: localhost
+  connection: local
+  gather_facts: no   # ✅ ADD THIS
+
+  tasks:
+    - name: Scale workers
+      shell: docker compose up --scale app_worker=2 -d

@@ -1,0 +1,51 @@
+groups:
+  - name: aiops-rules
+    rules:
+
+      # =========================
+      # CPU SPIKE DETECTION (ROBUST)
+      # =========================
+      - alert: HighCPU
+        expr: avg_over_time(app_cpu_usage[10s]) > 10
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: "CPU spike detected"
+          description: "CPU is above threshold for sustained period"
+
+      # =========================
+      # CPU ANOMALY (TREND-BASED)
+      # =========================
+      - alert: CPUAnomaly
+        expr: (app_cpu_usage - avg_over_time(app_cpu_usage[1m])) > 5
+        for: 15s
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU deviation detected"
+          description: "CPU deviates significantly from baseline"
+
+      # =========================
+      # SERVICE DOWN DETECTION
+      # =========================
+      - alert: AppDown
+        expr: up{job="onprem-app"} == 0
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Application is down"
+          description: "Target app:3000 is not responding"
+
+      # =========================
+      # LOW ACTIVITY (POSSIBLE FAILURE)
+      # =========================
+      - alert: LowTraffic
+        expr: app_cpu_usage == 0
+        for: 20s
+        labels:
+          severity: warning
+        annotations:
+          summary: "No CPU activity detected"
+          description: "Possible service stall or idle failure"

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIOps Load Generator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🚀 AIOps Real Load Generator</h1>
+
+    <div class="grid">
+
+        <div class="card">
+            <h3>Backend Status</h3>
+            <p id="status">Checking...</p>
+        </div>
+
+        <div class="card">
+            <h3>Total Requests</h3>
+            <h2 id="counter">0</h2>
+        </div>
+
+        <div class="card">
+            <h3>Active Workers</h3>
+            <h2 id="workers">0</h2>
+        </div>
+
+        <div class="card">
+            <h3>Load Control</h3>
+
+            <button onclick="startLoad(10)">Low (10 rps)</button>
+            <button onclick="startLoad(50)">Medium (50 rps)</button>
+            <button onclick="startLoad(200)">High 🔥 (200 rps)</button>
+            <button class="stop" onclick="stopLoad()">Stop All</button>
+
+        </div>
+
+        <div class="card full">
+            <h3>Demo Instructions</h3>
+            <p>
+                1. Click buttons multiple times<br>
+                2. Load increases (stacking workers)<br>
+                3. Open Grafana / Jaeger<br>
+                4. Observe spikes in metrics & traces
+            </p>
+        </div>
+
+    </div>
+
+</div>
+
+<script src="app.js"></script>
+
+</body>
+</html>

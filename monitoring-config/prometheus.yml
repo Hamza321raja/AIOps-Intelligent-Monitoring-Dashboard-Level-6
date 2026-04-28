@@ -1,0 +1,115 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+  external_labels:
+    environment: "aiops-demo"
+    monitor: "aiops-platform"
+
+# =========================
+# 🔹 ALERT RULES
+# =========================
+rule_files:
+  - "rules.yml"
+
+# =========================
+# 🔹 ALERTMANAGER
+# =========================
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - "alertmanager:9093"
+
+# =========================
+# 🔹 SCRAPE CONFIGS
+# =========================
+scrape_configs:
+
+  # =========================
+  # 🔹 PROMETHEUS SELF
+  # =========================
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+        labels:
+          service: "prometheus"
+          layer: "monitoring"
+          region: "local"
+
+  # =========================
+  # 🔹 OTEL COLLECTOR
+  # =========================
+  - job_name: "otel"
+    honor_labels: true
+    static_configs:
+      - targets: ["otel-collector:8889"]
+        labels:
+          service: "otel"
+          layer: "observability"
+          region: "local"
+
+  # =========================
+  # 🔹 MAIN APPLICATION (ON-PREM)
+  # =========================
+  - job_name: "onprem-app"
+    metrics_path: /metrics
+    scrape_interval: 5s
+    scrape_timeout: 3s
+    honor_labels: true
+
+    static_configs:
+      - targets: ["app:3000"]
+        labels:
+          service: "onprem-app"
+          layer: "application"
+          region: "onprem"
+
+  # =========================
+  # 🔹 WORKER (OPTIONAL BUT GOOD)
+  # =========================
+  - job_name: "worker"
+    metrics_path: /metrics
+    scrape_interval: 5s
+    scrape_timeout: 3s
+    honor_labels: true
+
+    static_configs:
+      - targets: ["app:3000"]
+        labels:
+          service: "worker"
+          layer: "processing"
+          region: "onprem"
+
+  # =========================
+  # 🔹 KUBERNETES EDGE
+  # =========================
+  - job_name: "kubernetes-edge"
+    metrics_path: /metrics
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    honor_labels: true
+
+    static_configs:
+      - targets: ["host.docker.internal:5001"]
+        labels:
+          service: "kubernetes-edge"
+          layer: "edge"
+          region: "edge"
+
+  # =========================
+  # 🔹 AWS EC2
+  # =========================
+  - job_name: "aws-ec2"
+    metrics_path: /metrics
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    scheme: http
+    honor_labels: true
+
+    static_configs:
+      - targets: ["54.87.177.57:4000"]
+        labels:
+          service: "aws-ec2"
+          layer: "compute"
+          region: "cloud"

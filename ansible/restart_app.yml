@@ -1,0 +1,11 @@
+- name: Restart App Container
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  vars:
+    container_name: app
+
+  tasks:
+    - name: Restart app container
+      command: docker restart {{ container_name }}

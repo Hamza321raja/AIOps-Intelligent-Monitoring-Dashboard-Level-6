@@ -1,0 +1,10 @@
+- name: Generic Auto Remediation
+  hosts: local
+  gather_facts: no
+
+  vars:
+    scale: 2   # change dynamically if needed
+
+  tasks:
+    - name: Scale application dynamically
+      command: docker-compose up --scale app={{ scale }} -d

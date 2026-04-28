@@ -1,0 +1,8 @@
+- name: Restart Kubernetes Deployment
+  hosts: localhost
+  connection: local
+  gather_facts: no   # ✅ ADD THIS
+
+  tasks:
+    - name: Restart edge app
+      shell: kubectl rollout restart deployment edge-app

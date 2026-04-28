@@ -1,0 +1,7 @@
+route:
+  receiver: "aiops-engine"
+
+receivers:
+  - name: "aiops-engine"
+    webhook_configs:
+      - url: "http://aiops-engine:8000/event"

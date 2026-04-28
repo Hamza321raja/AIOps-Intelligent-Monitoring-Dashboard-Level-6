@@ -1,0 +1,31 @@
+Sun Apr 19 19:16:29 2026 - Service was DOWN - Restart triggered
+Sun Apr 19 19:19:57 2026 - Service was DOWN - Restart triggered
+Sun Apr 19 19:20:39 2026 - Service was DOWN - Restart triggered
+Sun Apr 19 19:21:47 2026 - Service was DOWN - Restart triggered
+Sun Apr 19 19:32:52 2026 - Service was DOWN - Restart triggered
+Sun Apr 19 19:33:10 2026 - Service was DOWN - Restart triggered
+Sun Apr 19 19:33:27 2026 - Service was DOWN - Restart triggered
+Sun Apr 19 19:38:34 2026 - Service was DOWN - Restart triggered
+Sun Apr 19 19:42:26 2026 - Service was DOWN - Restart triggered
+Sun Apr 19 19:54:29 2026 - Service was DOWN - Restart triggered
+Sun Apr 19 19:54:47 2026 - Service was DOWN - Restart triggered
+Sun Apr 19 19:55:05 2026 - Service was DOWN - Restart triggered
+Sun Apr 19 19:55:23 2026 - Service was DOWN - Restart triggered
+Sun Apr 19 19:55:42 2026 - Service was DOWN - Restart triggered
+Sun Apr 19 19:56:00 2026 - Service was DOWN - Restart triggered
+Sun Apr 19 19:56:18 2026 - Service was DOWN - Restart triggered
+Sun Apr 19 19:56:37 2026 - Service was DOWN - Restart triggered
+Sun Apr 19 19:56:55 2026 - Service was DOWN - Restart triggered
+Sun Apr 19 19:57:14 2026 - Service was DOWN - Restart triggered
+Sun Apr 19 20:01:57 2026 - Service was DOWN - Restart triggered
+Sun Apr 19 21:54:17 2026 - Scaled UP (app_worker=2)
+Sun Apr 19 21:55:49 2026 - Scaled UP (app_worker=2)
+Sun Apr 19 21:59:16 2026 - Scaled UP (app_worker=2)
+Sun Apr 19 22:00:24 2026 - Scaled UP (app_worker=2)
+Sun Apr 19 22:00:30 2026 - Scaled UP (app_worker=2)
+Sun Apr 19 22:00:47 2026 - Scaled UP (app_worker=2)
+Sun Apr 19 22:00:54 2026 - Scaled UP (app_worker=2)
+Sun Apr 19 22:01:20 2026 - Scaled UP (app_worker=2)
+"LOKI TEST SUCCESS" 
+[INFO] Service was DOWN - Restart triggered
+"?? TEST LOG - $(date)" 

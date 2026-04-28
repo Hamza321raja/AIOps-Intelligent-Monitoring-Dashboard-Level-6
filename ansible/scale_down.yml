@@ -1,0 +1,7 @@
+- name: Scale Down Worker Containers
+  hosts: local
+  gather_facts: no
+
+  tasks:
+    - name: Scale worker containers to 1
+      command: docker compose up --scale app_worker=1 -d
