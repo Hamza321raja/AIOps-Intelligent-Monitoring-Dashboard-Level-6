@@ -2,16 +2,17 @@ receivers:
   otlp:
     protocols:
       grpc:
-        endpoint: 0.0.0.0:4317   # 🔥 FIXED
+        endpoint: 0.0.0.0:4317
       http:
-        endpoint: 0.0.0.0:4318   # 🔥 FIXED
+        endpoint: 0.0.0.0:4318
 
 processors:
   batch:
 
 exporters:
-  otlp:
-    endpoint: jaeger:4317
+  # ✅ FIXED NAME (was otlp_http, keep it same but use correctly)
+  otlp_http:
+    endpoint: http://jaeger:4318
     tls:
       insecure: true
 
@@ -19,16 +20,16 @@ exporters:
     endpoint: 0.0.0.0:8889
 
   debug:
-    verbosity: detailed
+    verbosity: basic
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp, debug]
+      exporters: [otlp_http, debug]   # ✅ FIX HERE
 
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [prometheus, debug]
+      exporters: [prometheus, debug]  # (optional but better for visibility)

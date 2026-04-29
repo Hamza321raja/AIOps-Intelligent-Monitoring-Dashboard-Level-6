@@ -14,19 +14,17 @@ from engine.runbook import runbook
 
 from config import PROM_URL, LOOP_INTERVAL
 
+LOKI_URL = "http://loki:3100/loki/api/v1/query"
+
 # ===============================
-# 🔹 ENSURE LOG DIRECTORY EXISTS
+# 🔹 LOGGING
 # ===============================
 LOG_PATH = "/app/logs/aiops.log"
 os.makedirs("/app/logs", exist_ok=True)
 
-# ===============================
-# 🔹 FIXED LOGGING (NO basicConfig)
-# ===============================
 logger = logging.getLogger("aiops")
 logger.setLevel(logging.INFO)
 
-# 🔥 clear old handlers
 if logger.hasHandlers():
     logger.handlers.clear()
 
@@ -39,13 +37,12 @@ stream_handler.setFormatter(formatter)
 
 logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
-
 logger.propagate = False
 
 logger.info("🔥 AIOps logging initialized")
 
 # ===============================
-# 🔹 SLA TRACKING
+# 🔹 SLA
 # ===============================
 total_requests = 0
 successful_requests = 0
@@ -56,14 +53,14 @@ def calculate_sla():
     return round((successful_requests / total_requests) * 100, 2)
 
 # ===============================
-# 🔹 REMEDIATION CONTROL
+# 🔹 CONTROL
 # ===============================
 last_action_time = 0
 last_decision = None
 ACTION_COOLDOWN = 30
 
 # ===============================
-# 🔹 SAFE JSON CONVERTER
+# 🔹 SAFE JSON
 # ===============================
 def convert(obj):
     if isinstance(obj, (np.bool_,)):
@@ -75,25 +72,55 @@ def convert(obj):
     return str(obj)
 
 # ===============================
-# 🔹 METRIC FETCH
+# 🔹 PROM METRICS
 # ===============================
 def metric(q):
     try:
         r = requests.get(PROM_URL, params={"query": q}, timeout=3)
-        res = r.json()["data"]["result"]
-        return float(res[0]["value"][1]) if res else 0
+        res = r.json().get("data", {}).get("result", [])
+        if res:
+            return float(res[0]["value"][1])
+        return 0.0
     except Exception as e:
         logger.error(f"Metric error: {e}")
-        return 0
+        return 0.0
 
 # ===============================
-# 🔹 METRIC COLLECTION
+# 🔥 LOKI ERROR RATE
+# ===============================
+def get_error_rate():
+    try:
+        query = 'count_over_time({job="aiops-engine"} |= "error" [1m])'
+        r = requests.get(LOKI_URL, params={"query": query}, timeout=3)
+        res = r.json().get("data", {}).get("result", [])
+
+        if res:
+            return float(res[0]["value"][1])
+        return 0.0
+    except Exception as e:
+        logger.error(f"Loki error: {e}")
+        return 0.0
+
+# ===============================
+# 🔥 TRACE LATENCY (SIMULATED)
+# ===============================
+def get_trace_latency():
+    try:
+        base = metric('rate(http_request_duration_seconds_sum[10s])')
+        return base * 1.2
+    except:
+        return 0.0
+
+# ===============================
+# 🔹 DATA COLLECTION
 # ===============================
 def collect():
     return np.array([
         metric('rate(process_cpu_seconds_total[10s]) * 100'),
         metric('rate(http_request_duration_seconds_sum[10s])'),
-        metric('rate(http_requests_total[10s])')
+        metric('rate(http_requests_total[10s])'),
+        get_error_rate(),
+        get_trace_latency()
     ])
 
 # ===============================
@@ -101,13 +128,16 @@ def collect():
 # ===============================
 def intelligent_decision(x, anomaly, failure, capacity, rca):
 
-    cpu, latency, requests = x
+    cpu, latency, requests, error_rate, trace = x
 
     if rca == "SERVICE_DOWN":
         return "RESTART"
 
     if failure == "HIGH_RISK":
         return "PREEMPTIVE_RESTART"
+
+    if error_rate > 10:
+        return "RESTART"
 
     if anomaly:
         if cpu > 70 and latency > 1:
@@ -120,7 +150,7 @@ def intelligent_decision(x, anomaly, failure, capacity, rca):
     return "NO_ACTION"
 
 # ===============================
-# 🔹 ENGINE LOOP
+# 🔹 MAIN LOOP
 # ===============================
 def run():
     global total_requests, successful_requests
@@ -130,10 +160,14 @@ def run():
 
     while True:
         try:
-            # 1. Collect metrics
             x = collect()
 
-            # 2. ML processing
+            # Prevent invalid data crash
+            if len(x) != 5:
+                logger.warning(f"Invalid data shape: {x}")
+                time.sleep(LOOP_INTERVAL)
+                continue
+
             anomaly, score = detect(x)
             train()
 
@@ -145,64 +179,53 @@ def run():
 
             rca = ai_rca(x)
 
-            # 3. SLA
+            # SLA
             total_requests += 1
             if not anomaly:
                 successful_requests += 1
             sla = calculate_sla()
 
-            # 4. Alert
             alert = intelligent_alert(x, anomaly, score, rca)
 
-            # 5. Decision
             decision = intelligent_decision(x, anomaly, failure, capacity, rca)
 
-            # 6. Runbook
             steps = runbook(decision, rca)
 
-            # 7. Remediation Control
             current_time = time.time()
 
             if decision != "NO_ACTION":
-
                 if decision == last_decision:
                     action = "SKIPPED_DUPLICATE"
-
                 elif current_time - last_action_time < ACTION_COOLDOWN:
                     action = "SKIPPED_COOLDOWN"
-
                 else:
                     action = remediate(decision)
                     last_action_time = current_time
                     last_decision = decision
-
             else:
                 action = "NO_ACTION"
 
-            # 8. Learning
             if anomaly:
                 learn_incident(x, decision)
 
-            # 9. Logging (SAFE JSON)
             log_data = {
                 "type": "aiops_event",
-                "metrics": x.tolist(),
+                "cpu": x[0],
+                "latency": x[1],
+                "requests": x[2],
+                "error_rate": x[3],
+                "trace_latency": x[4],
                 "anomaly": anomaly,
                 "pattern": p,
                 "failure": failure,
                 "capacity": capacity_info,
                 "rca": rca,
-                "alert": alert,
                 "decision": decision,
                 "action": action,
                 "sla": sla
             }
 
             logger.info(json.dumps(log_data, default=convert))
-
-            # 🔥 FORCE FLUSH
-            for h in logger.handlers:
-                h.flush()
 
         except Exception as e:
             logger.error(f"Engine loop error: {e}")

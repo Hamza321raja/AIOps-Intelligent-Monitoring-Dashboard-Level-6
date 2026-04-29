@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
 
   # =========================
@@ -10,9 +12,9 @@ services:
       - ./frontend:/usr/share/nginx/html
     ports:
       - "8080:80"
-    restart: always
     cpus: "0.25"
-    mem_limit: 128m
+    mem_limit: 256m
+    restart: always
 
   # =========================
   # 🔹 APP (WITH OTEL)
@@ -26,13 +28,13 @@ services:
       - ./logs:/app/logs
     environment:
       - OTEL_SERVICE_NAME=aiops-app
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318/v1/traces
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
     depends_on:
       - otel-collector
+    cpus: "0.50"
+    mem_limit: 512m
     restart: always
-    cpus: "0.5"
-    mem_limit: 256m
 
   # =========================
   # 🔹 AIOPS ENGINE
@@ -44,18 +46,15 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./aiops-engine:/app
       - ./ansible:/ansible
-      - ./logs:/app/logs 
+      - ./logs:/app/logs
     depends_on:
       - prometheus
-      - mlflow
-      - airflow
-      - rundeck
-    restart: always
-    cpus: "0.75"
+    cpus: "0.50"
     mem_limit: 512m
+    restart: always
 
   # =========================
-  # 🔹 OTEL COLLECTOR (NEW - FIX JAeGER)
+  # 🔹 OTEL COLLECTOR
   # =========================
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
@@ -68,15 +67,32 @@ services:
       - "4318:4318"
     depends_on:
       - jaeger
+    cpus: "0.50"
+    mem_limit: 512m
     restart: always
-    cpus: "0.5"
-    mem_limit: 256m
+
+  # =========================
+  # 🔹 JAEGER
+  # =========================
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "16686:16686"
+    volumes:
+      - jaeger_data:/badger
+    cpus: "0.50"
+    mem_limit: 512m
+    restart: always
 
   # =========================
   # 🔹 PROMETHEUS
   # =========================
   prometheus:
     image: prom/prometheus:v2.52.0
+    container_name: prometheus
     volumes:
       - ./monitoring-config/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./monitoring-config/rules.yml:/etc/prometheus/rules.yml
@@ -85,9 +101,9 @@ services:
       - "--config.file=/etc/prometheus/prometheus.yml"
     ports:
       - "9090:9090"
+    cpus: "0.75"
+    mem_limit: 768m
     restart: always
-    cpus: "0.5"
-    mem_limit: 256m
 
   # =========================
   # 🔹 GRAFANA
@@ -102,9 +118,9 @@ services:
       - loki
     volumes:
       - grafana_data:/var/lib/grafana
+    cpus: "0.75"
+    mem_limit: 768m
     restart: always
-    cpus: "0.5"
-    mem_limit: 256m
 
   # =========================
   # 🔹 LOKI
@@ -116,9 +132,9 @@ services:
       - "3100:3100"
     volumes:
       - loki_data:/loki
+    cpus: "0.50"
+    mem_limit: 512m
     restart: always
-    cpus: "0.25"
-    mem_limit: 128m
 
   # =========================
   # 🔹 PROMTAIL
@@ -132,25 +148,12 @@ services:
     command: -config.file=/etc/promtail/config.yml
     depends_on:
       - loki
-    restart: always
     cpus: "0.25"
-    mem_limit: 128m
-
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    container_name: jaeger
-    environment:
-     - COLLECTOR_OTLP_ENABLED=true
-    ports:
-     - "16686:16686"   # UI
-    volumes:
-     - jaeger_data:/badger
-    restart: always
-    cpus: "0.5"
     mem_limit: 256m
+    restart: always
 
   # =========================
-  # 🔹 MLFLOW
+  # 🔹 MLFLOW (LIGHT)
   # =========================
   mlflow:
     image: ghcr.io/mlflow/mlflow:v2.12.2
@@ -160,30 +163,31 @@ services:
     command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:///mlflow.db --default-artifact-root /mlruns
     volumes:
       - mlflow_data:/mlruns
-    restart: always
-    cpus: "0.5"
+    cpus: "0.50"
     mem_limit: 512m
+    restart: always
 
   # =========================
-  # 🔹 AIRFLOW
+  # 🔹 AIRFLOW (REDUCED LOAD)
   # =========================
   airflow:
-   image: apache/airflow:2.9.1
-   container_name: airflow
-   environment:
-    - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
-    - AIRFLOW__WEBSERVER__WORKERS=1
-   volumes:
-    - ./airflow/dags:/opt/airflow/dags
-    - airflow_data:/opt/airflow
-   command: >
-    bash -c "airflow standalone"
-   ports:
-    - "8085:8080"
-   restart: always
+    image: apache/airflow:2.9.1
+    container_name: airflow
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - airflow_data:/opt/airflow
+    command: >
+      bash -c "airflow standalone"
+    ports:
+      - "8085:8080"
+    cpus: "0.50"
+    mem_limit: 512m
+    restart: always
 
   # =========================
-  # 🔹 RUNDECK
+  # 🔹 RUNDECK (REDUCED)
   # =========================
   rundeck:
     image: rundeck/rundeck:5.3.0
@@ -192,9 +196,9 @@ services:
       - "4440:4440"
     volumes:
       - rundeck_data:/home/rundeck/server/data
-    restart: always
-    cpus: "0.75"
+    cpus: "0.50"
     mem_limit: 512m
+    restart: always
 
 
 # =========================

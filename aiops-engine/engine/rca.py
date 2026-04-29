@@ -12,10 +12,16 @@ def learn_incident(x, label):
 
 
 # ===============================
-# 🔹 RULE-BASED RCA (PRIMARY)
+# 🔹 RULE-BASED RCA (UPDATED)
 # ===============================
 def rule_based_rca(x):
-    cpu, latency, requests = x
+
+    # 🔥 SAFE INDEXING (NO UNPACK ERROR)
+    cpu = x[0]
+    latency = x[1]
+    requests = x[2]
+    error_rate = x[3]
+    trace = x[4]
 
     if cpu > 80 and latency > 1:
         return "CPU_BOTTLENECK"
@@ -29,24 +35,35 @@ def rule_based_rca(x):
     if cpu < 10 and latency > 1:
         return "IDLE_BUT_SLOW"
 
+    # 🔥 NEW (ADVANCED RCA)
+    if error_rate > 10:
+        return "APPLICATION_ERROR"
+
+    if trace > latency * 1.5:
+        return "DEPENDENCY_LATENCY"
+
     return None
 
 
 # ===============================
-# 🔹 MEMORY-BASED RCA (SECONDARY)
+# 🔹 MEMORY-BASED RCA
 # ===============================
 def memory_rca(x):
     if len(incident_memory) < 5:
         return None
 
-    X = np.array([i[0] for i in incident_memory])
-    labels = [i[1] for i in incident_memory]
+    try:
+        X = np.array([i[0] for i in incident_memory])
+        labels = [i[1] for i in incident_memory]
 
-    sim = cosine_similarity([x], X)[0]
-    idx = np.argmax(sim)
+        sim = cosine_similarity([x], X)[0]
+        idx = np.argmax(sim)
 
-    if sim[idx] > 0.8:  # similarity threshold
-        return labels[idx]
+        if sim[idx] > 0.8:
+            return labels[idx]
+
+    except Exception:
+        return None
 
     return None
 
@@ -56,12 +73,12 @@ def memory_rca(x):
 # ===============================
 def ai_rca(x):
 
-    # 1. Rule-based RCA (fast + reliable)
+    # 1. Rule-based RCA
     rule = rule_based_rca(x)
     if rule:
         return rule
 
-    # 2. Memory-based RCA (learning)
+    # 2. Memory-based RCA
     mem = memory_rca(x)
     if mem:
         return mem

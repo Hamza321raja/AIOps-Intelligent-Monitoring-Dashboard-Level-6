@@ -1,1 +1,1 @@
-kubectl port-forward svc/edge-service 5001:5000
+kubectl port-forward svc/edge-service 5001:3000

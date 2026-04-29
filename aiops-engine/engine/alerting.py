@@ -5,7 +5,7 @@ alerts = {}
 def intelligent_alert(x, anomaly, score, rca=None):
     now = time.time()
 
-    cpu, latency, requests = x
+    cpu, latency, requests, error_rate, trace = x
 
     # ===============================
     # 🔹 CORRELATED ALERT LOGIC

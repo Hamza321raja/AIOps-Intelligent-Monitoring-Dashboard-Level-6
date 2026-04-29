@@ -28,9 +28,9 @@ scaler = StandardScaler()
 iso_model = IsolationForest(contamination=0.1, random_state=42)
 cluster_model = KMeans(n_clusters=3, n_init=10)
 
-# 🔥 Time-aware model (sequence-based)
+# 🔥 UPDATED INPUT SHAPE (7 FEATURES)
 tf_model = tf.keras.Sequential([
-    tf.keras.layers.Dense(32, activation='relu', input_shape=(5,)),
+    tf.keras.layers.Dense(32, activation='relu', input_shape=(7,)),
     tf.keras.layers.Dense(16, activation='relu'),
     tf.keras.layers.Dense(1)
 ])
@@ -43,7 +43,7 @@ last_train_size = 0
 
 
 # =========================
-# 🔹 FEATURE ENGINEERING
+# 🔹 FEATURE ENGINEERING (UPDATED)
 # =========================
 def build_features(X):
     features = []
@@ -52,12 +52,22 @@ def build_features(X):
         cpu = X[i][0]
         latency = X[i][1]
         req = X[i][2]
+        error = X[i][3]
+        trace = X[i][4]
 
-        # 🔥 derived features
+        # 🔥 trends
         cpu_trend = X[i][0] - X[i-1][0]
         latency_trend = X[i][1] - X[i-1][1]
 
-        features.append([cpu, latency, req, cpu_trend, latency_trend])
+        features.append([
+            cpu,
+            latency,
+            req,
+            error,
+            trace,
+            cpu_trend,
+            latency_trend
+        ])
 
     return np.array(features)
 
@@ -72,7 +82,6 @@ def train():
         logger.info("Not enough data for training")
         return
 
-    # 🔥 avoid retraining too frequently
     if len(history) - last_train_size < 20:
         return
 
@@ -85,12 +94,11 @@ def train():
     try:
         X_scaled = scaler.fit_transform(X)
 
-        # Train anomaly + clustering
         iso_model.fit(X_scaled)
         cluster_model.fit(X_scaled)
 
-        # 🔥 TRUE PREDICTION TARGET (next-step CPU)
-        y = X[1:, 0]  # future CPU
+        # 🔥 predict next CPU
+        y = X[1:, 0]
         X_train = X_scaled[:-1]
 
         tf_model.fit(X_train, y, epochs=5, verbose=0)
@@ -160,7 +168,7 @@ def pattern(x):
 
 
 # =========================
-# 🔹 FAILURE PREDICTION (REAL)
+# 🔹 FAILURE PREDICTION
 # =========================
 def predict_failure(x):
     if not trained:
@@ -176,7 +184,6 @@ def predict_failure(x):
 
         pred_cpu = tf_model.predict(x_scaled, verbose=0)[0][0]
 
-        # 🔥 dynamic threshold
         cpu_hist = [h[0] for h in history]
         threshold = np.mean(cpu_hist) + 1.5 * np.std(cpu_hist)
 
